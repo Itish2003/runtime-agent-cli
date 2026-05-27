@@ -23,10 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # NOTE: no `registry-url` — it writes an .npmrc with an empty _authToken
+      # that shadows OIDC. npm defaults to registry.npmjs.org anyway.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: "https://registry.npmjs.org"
 
       # Trusted publishing requires a recent npm (>= 11.5.1).
       - run: npm install -g npm@latest
