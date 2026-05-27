@@ -1,0 +1,55 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Spike API", "version": "1.0.0" },
+  "paths": {
+    "/users/{id}": {
+      "post": {
+        "operationId": "create_user",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/CreateUser" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/User" } }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateUser": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "nickname": { "type": ["string", "null"] },
+          "role": { "$ref": "#/components/schemas/Role" },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" },
+            "examples": [["a", "b"]]
+          }
+        },
+        "required": ["email"]
+      },
+      "Role": { "type": "string", "enum": ["admin", "user"] },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "email": { "type": "string" },
+          "role": { "$ref": "#/components/schemas/Role" }
+        }
+      }
+    }
+  }
+}
