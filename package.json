@@ -26,10 +26,12 @@
     "url": "https://github.com/Itish2003/runtime-agent-cli/issues"
   },
   "bin": {
-    "runtime-agent-cli": "./src/cli.ts",
-    "rac": "./src/cli.ts"
+    "runtime-agent-cli": "src/cli.ts",
+    "rac": "src/cli.ts"
   },
-  "files": ["src"],
+  "files": [
+    "src"
+  ],
   "engines": {
     "bun": ">=1.0.0"
   },
