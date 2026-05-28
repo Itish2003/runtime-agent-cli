@@ -27,17 +27,24 @@ The output stays ~500 tokens regardless of spec size — so the bigger the API, 
 ## Install & quickstart
 
 ```bash
-# zero-install, always-latest
-bunx runtime-agent-cli init        # scaffold config + agent teaching files
+# Option A — global install (recommended for repeated use)
+npm install -g runtime-agent-cli   # or: bun add -g runtime-agent-cli
+rac init                           # short alias, same as runtime-agent-cli init
+
+# Option B — zero-install, always-latest
+bunx runtime-agent-cli init
+```
+
+```bash
 # edit .runtime-agent-cli.yaml  →  point openapi_source at your running dev server
 
-bunx runtime-agent-cli doctor                                             # spec health check first
-bunx runtime-agent-cli guide                                              # the doctrine + workflow, tailored to your spec
-bunx runtime-agent-cli search invoice                                     # find an operation
-bunx runtime-agent-cli inspect createInvoice                              # resolved schema + a ready-to-fill payload
-bunx runtime-agent-cli run createInvoice --input payload.json --dry-run   # see the exact request
-bunx runtime-agent-cli run getInvoice --input payload.json                # execute, observe the real response
-bunx runtime-agent-cli conform getInvoice --input payload.json            # diff observed vs declared contract
+rac doctor                                              # spec health check first
+rac guide                                               # the doctrine + workflow, tailored to your spec
+rac search invoice                                      # find an operation
+rac inspect createInvoice                               # resolved schema + a ready-to-fill payload
+rac run createInvoice --input payload.json --dry-run    # see the exact request
+rac run getInvoice --input payload.json                 # execute, observe the real response
+rac conform getInvoice --input payload.json             # diff observed vs declared contract
 ```
 
 `init` writes an `AGENTS.md` pointer plus per-harness shims (Claude `CLAUDE.md` + skill, Cursor `.cursor/rules`) so your agent discovers the tool automatically.
