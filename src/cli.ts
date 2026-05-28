@@ -14,7 +14,7 @@ const program = new Command();
 program
   .name("runtime-agent-cli")
   .description("A dev-time CLI that reflects your live API for AI coding agents. All output is JSON.")
-  .version("0.0.1");
+  .version("0.1.0");
 
 program
   .command("init")
