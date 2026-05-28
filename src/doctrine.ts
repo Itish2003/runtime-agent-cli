@@ -10,10 +10,12 @@ export const TENETS = [
 ];
 
 export const WORKFLOW = [
+  "doctor           — check spec health first (version, reachability, missing operationIds).",
   "search <query>   — find the operation (don't read the whole spec).",
   "inspect <op>     — get its resolved schema + a ready-to-fill `run` template. Don't hand-build the call.",
   "run <op> --input payload.json [--dry-run]  — execute; observe the real response.",
   "run <op> --batch inputs.json — probe many inputs in one shot (stress, don't confirm).",
+  "conform <op> --input payload.json — diff observed response against the declared contract; mismatches = bugs.",
 ];
 
 export const HINTS = {
@@ -26,4 +28,9 @@ export const HINTS = {
     "Name an environment (config `environment:` or `--env <name>`). The tool refuses to fire at an unnamed target — it won't guess which backend you mean.",
   readOnly:
     "Doctrine: safe by default. This is a write/destructive verb; re-run with `--allow-writes` once you're sure of the target environment.",
+  runDoctor:
+    "Run `doctor` first — it checks spec reachability, version, and operationId coverage so you know what the tool can reliably address.",
+  conformMismatch:
+    "A mismatch from `conform` means the server response diverges from the spec — fix the spec OR the server, not the test. " +
+    "Use `inspect <operationId>` to see the declared schema for comparison.",
 };

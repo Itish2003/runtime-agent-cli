@@ -6,6 +6,8 @@ import { search } from "./commands/search.ts";
 import { run } from "./commands/run.ts";
 import { guide } from "./commands/guide.ts";
 import { init } from "./commands/init.ts";
+import { doctor } from "./commands/doctor.ts";
+import { conform } from "./commands/conform.ts";
 
 const program = new Command();
 
@@ -45,6 +47,21 @@ program
   .option("--dry-run", "print the fully-resolved request (secrets redacted), send nothing")
   .option("--allow-writes", "permit non-GET/HEAD (write/destructive) calls")
   .action((op, opts) => run(op, opts));
+
+program
+  .command("doctor")
+  .description("Report spec health: version, op count, missing operationIds, reachability, base_url.")
+  .action(() => doctor());
+
+program
+  .command("conform <operationId>")
+  .description("Fire a request and diff the observed response against the declared OpenAPI contract.")
+  .option("-i, --input <file>", "JSON file with { path, query, body, headers }")
+  .option("-b, --batch <file>", "JSON array of inputs — conform all in one shot")
+  .option("-e, --env <name>", "environment to target")
+  .option("--dry-run", "print the fully-resolved request (secrets redacted), send nothing")
+  .option("--allow-writes", "permit non-GET/HEAD (write/destructive) calls")
+  .action((op, opts) => conform(op, opts));
 
 async function main() {
   try {

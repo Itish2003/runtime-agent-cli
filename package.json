@@ -41,6 +41,8 @@
   },
   "dependencies": {
     "@readme/openapi-parser": "^6.1.1",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "commander": "^12.1.0",
     "yaml": "^2.5.0"
   }
