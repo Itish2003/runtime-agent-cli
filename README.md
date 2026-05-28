@@ -31,11 +31,13 @@ The output stays ~500 tokens regardless of spec size — so the bigger the API, 
 bunx runtime-agent-cli init        # scaffold config + agent teaching files
 # edit .runtime-agent-cli.yaml  →  point openapi_source at your running dev server
 
-bunx runtime-agent-cli guide                    # the doctrine + workflow, tailored to your spec
-bunx runtime-agent-cli search invoice           # find an operation
-bunx runtime-agent-cli inspect createInvoice    # resolved schema + a ready-to-fill payload
+bunx runtime-agent-cli doctor                                             # spec health check first
+bunx runtime-agent-cli guide                                              # the doctrine + workflow, tailored to your spec
+bunx runtime-agent-cli search invoice                                     # find an operation
+bunx runtime-agent-cli inspect createInvoice                              # resolved schema + a ready-to-fill payload
 bunx runtime-agent-cli run createInvoice --input payload.json --dry-run   # see the exact request
 bunx runtime-agent-cli run getInvoice --input payload.json                # execute, observe the real response
+bunx runtime-agent-cli conform getInvoice --input payload.json            # diff observed vs declared contract
 ```
 
 `init` writes an `AGENTS.md` pointer plus per-harness shims (Claude `CLAUDE.md` + skill, Cursor `.cursor/rules`) so your agent discovers the tool automatically.
@@ -48,10 +50,41 @@ bunx runtime-agent-cli run getInvoice --input payload.json                # exec
 |---|---|
 | `init` | Scaffold config + agent teaching files (`AGENTS.md`, skill stub, harness shims). |
 | `guide` | Print the doctrine + workflow, tailored to the current spec. Agents read this first. |
+| `doctor` | Report spec health: version, op count, missing operationIds, reachability, base_url. |
 | `search [query]` | Find operations by keyword (operationId / path / summary / tags). |
 | `inspect <op> [--detail brief\|detailed\|full]` | Resolved schema + a ready-to-fill `run` payload for one operation. |
 | `run <op> --input <file> [--dry-run] [--allow-writes] [--env <name>]` | Execute; observe the real response. JSON in, JSON out. |
 | `run <op> --batch <file>` | Fire an array of inputs in one shot (stress, don't confirm). |
+| `conform <op> --input <file> [--dry-run] [--allow-writes] [--env <name>]` | Fire a request and diff the observed response against the declared OpenAPI contract. Mismatches are bugs. |
+| `conform <op> --batch <file>` | Conform many inputs in one shot. |
+
+### `conform` output
+
+```jsonc
+{
+  "ok": true,
+  "operation": "getPetById",
+  "env": "local",
+  "status": 200,
+  "contract": {
+    "status_declared": true,
+    "matched_status": "200",
+    "schema_declared": true
+  },
+  "mismatches": [
+    {
+      "code": "TYPE_MISMATCH",       // MISSING_REQUIRED_FIELD | TYPE_MISMATCH | EXTRA_FIELD
+      "path": "$.data.score",        //   | UNDECLARED_STATUS | SCHEMA_VIOLATION
+      "expected": "integer",
+      "observed": "string",
+      "message": "$.data.score: expected integer, got string"
+    }
+  ],
+  "verdict": "PASS"                  // FAIL when any mismatch is present
+}
+```
+
+Schema validation uses [ajv](https://ajv.js.org) — handles `oneOf`/`anyOf`/`allOf`, format constraints, `additionalProperties`, OpenAPI 3.0 `nullable`, and recursive schemas (recursive schemas produce an explicit `FAIL` with truncation paths rather than a silent false-negative `PASS`).
 
 ### Config (`.runtime-agent-cli.yaml`)
 
@@ -95,6 +128,7 @@ Shipped to agents via `guide` and the skill stub:
 - Parser: [`@readme/openapi-parser`](https://www.npmjs.com/package/@readme/openapi-parser) — officially supports OpenAPI **3.0 / 3.1** (and 2.0). FastAPI's 3.1 output works out of the box.
 - Swagger **2.0** is best-effort: it loads and `in: body` request bodies are lifted into the modern shape, but exotic 2.0 constructs aren't guaranteed.
 - Multi-file specs split across external `$ref`s to other URLs/files aren't fully resolved yet (single-document specs only).
+- `conform` schema diff covers the full JSON Schema feature set via ajv. Recursive schemas are validated up to a depth limit; truncation is surfaced as an explicit `FAIL` rather than a silent pass.
 
 ## License
 
