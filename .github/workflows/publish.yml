@@ -18,7 +18,28 @@ permissions:
   id-token: write # required for OIDC authentication + provenance
 
 jobs:
+  # Gate: the package ships raw .ts (files: ["src"]), so a type error would reach
+  # consumers directly. bun build does NOT type-check — tsc is the only guard.
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+
+  # Gate: the suite pins the doctrine — §7 envelope, graceful degradation, diff
+  # soundness, "cannot go stale" — so a regression can't be published.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun test
+
   publish:
+    needs: [typecheck, test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

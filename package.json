@@ -37,7 +37,9 @@
   },
   "scripts": {
     "start": "bun run src/cli.ts",
-    "build": "bun build --compile --minify src/cli.ts --outfile runtime-agent-cli"
+    "build": "bun build --compile --minify src/cli.ts --outfile runtime-agent-cli",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
   },
   "dependencies": {
     "@readme/openapi-parser": "^6.1.1",
@@ -45,5 +47,10 @@
     "ajv-formats": "^3.0.1",
     "commander": "^12.1.0",
     "yaml": "^2.5.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "openapi-types": "^12.1.3",
+    "typescript": "~6.0.3"
   }
 }
