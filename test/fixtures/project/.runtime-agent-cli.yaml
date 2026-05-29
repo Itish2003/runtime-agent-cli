@@ -1,0 +1,5 @@
+openapi_source: "./openapi.json"
+environment: local
+environments:
+  local:
+    base_url: "http://localhost:9999"

@@ -1,0 +1,36 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Cyclic 3.1", "version": "1.0.0" },
+  "paths": {
+    "/tree": {
+      "get": {
+        "operationId": "getTree",
+        "summary": "Get a recursive tree",
+        "responses": {
+          "200": {
+            "description": "the tree",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Tree" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Tree": {
+        "type": "object",
+        "properties": {
+          "value": { "type": "string" },
+          "children": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Tree" }
+          }
+        }
+      }
+    }
+  }
+}

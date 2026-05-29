@@ -5,3 +5,4 @@ runtime-agent-cli
 rac
 *.tsbuildinfo
 .runtime-agent-cli.state.json
+test/fixtures/.tmp-*.json

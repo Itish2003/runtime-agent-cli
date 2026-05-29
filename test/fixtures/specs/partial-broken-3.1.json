@@ -1,0 +1,20 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Partially broken 3.1", "version": "1.0.0" },
+  "paths": {
+    "/good": {
+      "get": {
+        "operationId": "goodOp",
+        "summary": "a complete, well-formed operation",
+        "tags": ["ok"],
+        "responses": { "200": { "description": "ok" } }
+      }
+    },
+    "/sparse": {
+      "get": {
+        "parameters": [{ "name": "x", "in": "query" }],
+        "responses": {}
+      }
+    }
+  }
+}
