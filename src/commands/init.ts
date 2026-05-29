@@ -75,13 +75,14 @@ function appendPointer(results: any[], path: string) {
 }
 
 function ensureLine(results: any[], path: string, line: string) {
-  const cur = existsSync(path) ? readFileSync(path, "utf8") : "";
+  const existed = existsSync(path);
+  const cur = existed ? readFileSync(path, "utf8") : "";
   if (cur.split("\n").includes(line)) {
     results.push({ path, status: "skipped (present)" });
     return;
   }
   writeFileSync(path, cur && !cur.endsWith("\n") ? cur + "\n" + line + "\n" : cur + line + "\n");
-  results.push({ path, status: existsSync(path) ? "updated" : "created" });
+  results.push({ path, status: existed ? "updated" : "created" });
 }
 
 export async function init() {

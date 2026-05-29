@@ -16,7 +16,7 @@ export async function inspect(opId: string, opts: { detail?: string }) {
   const { catalog } = await getCatalog();
   const op = requireOp(catalog, opId);
 
-  const parameters: Record<string, any[]> = { path: [], query: [], header: [] };
+  const parameters: Record<string, any[]> = { path: [], query: [], header: [], cookie: [] };
   for (const p of op.params) {
     (parameters[p.in] ??= []).push({
       name: p.name,
@@ -47,6 +47,7 @@ export async function inspect(opId: string, opts: { detail?: string }) {
         path: parameters.path,
         query: parameters.query,
         ...(parameters.header.length ? { header: parameters.header } : {}),
+        ...(parameters.cookie.length ? { cookie: parameters.cookie } : {}),
       },
       body: op.requestBody
         ? { required: op.requestBody.required, schema: summarize(op.requestBody.schema) }

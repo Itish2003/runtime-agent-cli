@@ -21,7 +21,8 @@ function score(op: Operation, terms: string[]): number {
 
 export async function search(query: string | undefined, opts: { limit?: string }) {
   const { catalog } = await getCatalog();
-  const limit = opts.limit ? Number(opts.limit) : 10;
+  const parsedLimit = Number(opts.limit);
+  const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? parsedLimit : 10;
   const terms = (query ?? "").toLowerCase().split(/\s+/).filter(Boolean);
 
   let ranked: Operation[];
