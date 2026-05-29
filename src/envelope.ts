@@ -6,9 +6,16 @@ export interface Err {
   error: string; // stable machine code, e.g. "OP_NOT_FOUND"
   message: string; // human/agent-readable
   hint?: string; // pedagogical: doctrine + the correct shape (§6b mechanism 2)
+  [k: string]: unknown; // commands enrich the error (run adds status/operation/env)
 }
 
-export function emit(payload: object): void {
+// Shapes vary per command (run enriches with status/headers/body; commands add
+// operation/env) — so the only fixed guarantees are `ok` plus, on failure, error+message.
+// Both sides stay open to extra fields; the union is the actual §7 contract.
+export type Ok = { ok: true; [k: string]: unknown };
+export type Envelope = Ok | Err;
+
+export function emit(payload: Envelope): void {
   process.stdout.write(JSON.stringify(payload, null, 2) + "\n");
 }
 

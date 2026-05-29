@@ -2,15 +2,17 @@
 // The tool emits the correct SHAPE; the LLM fills meaningful VALUES (§6b).
 // Dereferenced specs can be circular/recursive — guard with depth + seen set.
 
+import type { JsonSchema } from "../spec.ts";
+
 const MAX_DEPTH = 8;
 
-function pickType(schema: any): string | undefined {
+function pickType(schema: JsonSchema): string | undefined {
   let t = schema.type;
-  if (Array.isArray(t)) t = t.find((x: string) => x !== "null") ?? t[0]; // 3.1 nullable
+  if (Array.isArray(t)) t = t.find((x) => x !== "null") ?? t[0]; // 3.1 nullable
   return t;
 }
 
-export function skeleton(schema: any, depth = 0, seen = new Set<any>()): any {
+export function skeleton(schema: JsonSchema, depth = 0, seen = new Set<JsonSchema>()): unknown {
   if (!schema || typeof schema !== "object") return null;
   if (depth > MAX_DEPTH || seen.has(schema)) return null;
 
@@ -28,8 +30,8 @@ export function skeleton(schema: any, depth = 0, seen = new Set<any>()): any {
   switch (type) {
     case "object": {
       const next = new Set(seen).add(schema);
-      const out: Record<string, any> = {};
-      for (const [k, v] of Object.entries<any>(schema.properties ?? {})) {
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries<JsonSchema>(schema.properties ?? {})) {
         out[k] = skeleton(v, depth + 1, next);
       }
       return out;
@@ -55,7 +57,7 @@ export function skeleton(schema: any, depth = 0, seen = new Set<any>()): any {
 }
 
 // Compact, circular-safe description of a schema for inspect output.
-export function summarize(schema: any, depth = 0, seen = new Set<any>()): any {
+export function summarize(schema: JsonSchema, depth = 0, seen = new Set<JsonSchema>()): unknown {
   if (!schema || typeof schema !== "object") return schema ?? null;
   if (depth > MAX_DEPTH || seen.has(schema)) return "<...>";
   const type = schema.type ?? (schema.properties ? "object" : undefined);
@@ -67,7 +69,7 @@ export function summarize(schema: any, depth = 0, seen = new Set<any>()): any {
   const next = new Set(seen).add(schema);
   if (schema.properties) {
     base.properties = {};
-    for (const [k, v] of Object.entries<any>(schema.properties)) {
+    for (const [k, v] of Object.entries<JsonSchema>(schema.properties)) {
       base.properties[k] = summarize(v, depth + 1, next);
     }
     if (schema.required) base.required = schema.required;

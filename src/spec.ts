@@ -1,16 +1,39 @@
 import { dereference } from "@readme/openapi-parser";
 import { parse as parseYaml } from "yaml";
+import type { OpenAPIV3 } from "openapi-types";
 // @readme/openapi-parser officially supports OpenAPI 3.1 and exposes
 // dereference()/validate() as named exports (no default export).
 
 const METHODS = ["get", "put", "post", "delete", "patch", "options", "head", "trace"] as const;
 export type Method = (typeof METHODS)[number];
 
+/**
+ * A dereferenced schema as this tool handles it across OpenAPI 2.0 / 3.0 / 3.1.
+ * Anchored on openapi-types' 3.0 SchemaObject (gives nullable/enum/example/format/…),
+ * then reconciled with reality: `type` widened to allow 3.1 arrays, `examples` added
+ * (3.1), and nested $ref removed since `dereference()` resolves them away — so every
+ * nested position is a plain JsonSchema, not `ReferenceObject | SchemaObject`.
+ */
+export type JsonSchema = Omit<
+  OpenAPIV3.NonArraySchemaObject,
+  "type" | "properties" | "items" | "allOf" | "oneOf" | "anyOf" | "additionalProperties" | "not"
+> & {
+  type?: string | string[];
+  properties?: Record<string, JsonSchema>;
+  items?: JsonSchema;
+  allOf?: JsonSchema[];
+  oneOf?: JsonSchema[];
+  anyOf?: JsonSchema[];
+  additionalProperties?: boolean | JsonSchema;
+  not?: JsonSchema;
+  examples?: unknown[];
+};
+
 export interface Param {
   name: string;
   in: "path" | "query" | "header" | "cookie";
   required: boolean;
-  schema: any;
+  schema: JsonSchema;
   description?: string;
 }
 
@@ -22,8 +45,8 @@ export interface Operation {
   description?: string;
   tags: string[];
   params: Param[];
-  requestBody?: { required: boolean; schema: any };
-  responses: Record<string, { description?: string; schema?: any }>;
+  requestBody?: { required: boolean; schema: JsonSchema };
+  responses: Record<string, { description?: string; schema?: JsonSchema }>;
 }
 
 export interface Catalog {
@@ -39,10 +62,10 @@ function synthId(method: string, path: string): string {
   return [method.toLowerCase(), ...parts].join("_");
 }
 
-function jsonSchema(content: any): any {
+function jsonSchema(content: any): JsonSchema | undefined {
   if (!content) return undefined;
   const ct = content["application/json"] ?? content[Object.keys(content)[0]];
-  return ct?.schema;
+  return ct?.schema as JsonSchema | undefined;
 }
 
 export async function loadCatalog(source: string): Promise<Catalog> {

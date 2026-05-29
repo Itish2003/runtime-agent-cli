@@ -1,6 +1,6 @@
-import Ajv, { type ErrorObject } from "ajv";
+import Ajv, { type ErrorObject, type AnySchema } from "ajv";
 import addFormats from "ajv-formats";
-import type { Operation } from "../spec.ts";
+import type { Operation, JsonSchema } from "../spec.ts";
 
 const ajv = new Ajv({ allErrors: true, strict: false, verbose: true });
 addFormats(ajv);
@@ -129,7 +129,7 @@ function mapError(err: ErrorObject): Mismatch {
 function findDeclaredResponse(
   op: Operation,
   status: number,
-): { declared: boolean; schema?: any; matchedStatus?: string } {
+): { declared: boolean; schema?: JsonSchema; matchedStatus?: string } {
   const exact = String(status);
   if (op.responses[exact]) return { declared: true, schema: op.responses[exact].schema, matchedStatus: exact };
 
@@ -191,7 +191,7 @@ export function diffResponse(status: number, body: unknown, op: Operation): Diff
   const { schema: safeSchema, cyclePaths } = cloneSchema(found.schema);
   let validate: ReturnType<typeof ajv.compile>;
   try {
-    validate = ajv.compile(safeSchema);
+    validate = ajv.compile(safeSchema as AnySchema);
   } catch (e) {
     return {
       status_declared: true,
