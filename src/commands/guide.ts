@@ -1,5 +1,5 @@
 import { emit, ok } from "../envelope.ts";
-import { TENETS, WORKFLOW } from "../doctrine.ts";
+import { WHY, TENETS, WORKFLOW, PARTNERS } from "../doctrine.ts";
 import { loadConfig, resolveSpecSource } from "../config.ts";
 import { loadCatalog } from "../spec.ts";
 
@@ -22,9 +22,11 @@ export async function guide() {
 
   emit(
     ok({
+      why: WHY,
       what: "A dev-time CLI that reflects your live API. Verify what the server actually does, not what the code assumes.",
       doctrine: TENETS,
       workflow: WORKFLOW,
+      partners: PARTNERS,
       api,
       note: api
         ? "Start with `search <query>`, then `inspect <operationId>`, then `run`."
