@@ -19,34 +19,37 @@ const POINTER = `${MARKER}
 ## API testing — runtime-agent-cli
 
 This repo has \`runtime-agent-cli\`: a live, always-fresh view of the API for verifying backend work.
-Use it whenever you write tests for an endpoint, verify a route works, check what the API actually
-returns, or call an API you didn't write.
+Reach for it when you write a test for an endpoint, verify a route works, check what the API actually
+returns/accepts, or call an API you didn't write or don't know.
 
-**Doctrine: observe before you assert.** Don't write a test from what the code *should* do — hit the
-endpoint and encode what it *does*. Read the full workflow with: \`runtime-agent-cli guide\`
+**Doctrine: the running server is the fact; the source is a hypothesis.** Don't write a test from what
+the code *should* return — hit the endpoint and encode what it *does*. Read the full workflow with:
+\`runtime-agent-cli guide\`
 
-Loop: \`search <query>\` → \`inspect <operationId>\` → \`run <op> --input payload.json [--dry-run]\`.
+Loop: \`search <query>\` → \`inspect <operationId>\` → \`run <op> --input payload.json [--dry-run]\` → \`conform <op> --input payload.json\` (diff observed vs declared).
 ${MARKER}`;
 
 const SKILL = `---
 name: runtime-agent-cli
 description: >-
-  Live API verification for AI agents. Use when writing tests for an endpoint, verifying a route
+  Live API verification for AI agents. Use when writing a test for an endpoint, verifying a route
   works, checking what an API actually returns/accepts, debugging an endpoint, or calling an API you
-  didn't write. Triggers: "test this endpoint", "verify the API", "does this route work", "what does
-  /x return", "check the backend". Prefer this over curl or reading the route source.
+  didn't write or don't know. Triggers: "test this endpoint", "verify the API", "does this route
+  work", "what does /x return", "check the backend", consuming an unfamiliar/third-party API. Prefer
+  this over curl or reading the route source.
 ---
 
 # runtime-agent-cli
 
-This is a discovery stub. Load the live, version-matched, repo-aware guide before use:
+This is a discovery stub (a doorbell, not the manual). Load the live, version-matched, repo-aware
+guide before use:
 
 \`\`\`bash
 runtime-agent-cli guide
 \`\`\`
 
-Then: \`search <query>\` → \`inspect <operationId>\` → \`run <op> --input payload.json [--dry-run]\`.
-All output is JSON. Doctrine: observe before you assert; reconcile observed vs declared; stress, don't confirm.
+Then: \`search <query>\` → \`inspect <operationId>\` → \`run <op> --input payload.json [--dry-run]\` → \`conform <op> --input payload.json\`.
+All output is JSON. Doctrine: the running server is the fact, the source is a hypothesis — observe before you assert, reconcile observed vs declared, stress don't confirm.
 `;
 
 function writeIfAbsent(results: any[], path: string, content: string) {
