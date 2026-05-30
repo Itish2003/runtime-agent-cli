@@ -196,15 +196,14 @@ Three threads are deliberately *not* in the core, and each has its own ADR:
   outward wrapper (fastmcp, Python). The core gains zero runtime deps either way
   ([ADR 0010](./decisions/0010-optional-addons-two-shapes.md)).
 
-And one in-flight improvement:
+And the search improvement has since landed:
 
-- **Search scoring.** The assessment names search ranking as the *most impactful
-  gap* on large specs. The current `src/commands/search.ts` is the naive scorer
-  (substring field boosts, no IDF, no deterministic tie-break). The decided
-  direction is a hand-rolled field-aware lexical scorer (IDF + field boosts +
-  deterministic tie-break) — explicitly **not** MiniSearch and **not** literal
-  BM25. **Status: in progress** — direction decided, not yet landed
-  ([ADR 0011](./decisions/0011-search-scoring.md)).
+- **Search scoring.** The assessment named search ranking as the *most impactful
+  gap* on large specs. As of v0.2.0 `src/commands/search.ts` is a hand-rolled
+  field-aware lexical scorer (IDF + field boosts + a deterministic tie-break),
+  also searching the previously-ignored `description` field — explicitly **not**
+  MiniSearch and **not** literal BM25. **Status: landed** (`feat(search)`,
+  [ADR 0011](./decisions/0011-search-scoring.md)).
 
 > _Author's note: of the open threads, which one are you most excited to build,
 > and which are you least sure about?_
@@ -227,3 +226,44 @@ A few principles recur across every phase and are worth naming on their own:
   the MCP-refresh correction).
 - **Safe by default** — config-level fencing, not an embedded sandbox
   ([ADR 0012](./decisions/0012-safety-model-config-not-sandbox.md)).
+
+---
+
+## Field test — 2026-05-30 (against v0.2.0)
+
+The first real agent run. A *lazy* prompt — "Build me a shopping API in FastAPI —
+products, cart, orders." — given to a coding agent in a fresh repo, with `rac`
+installed and the scaffolded skill/AGENTS stubs present. No mention of `rac`.
+
+**The win (the thesis, validated on the hardest case).** Once engaged, the agent
+ran the full loop (`guide → doctor → search → inspect → run → conform`) against its
+*own* running server. `conform` caught a real contract gap: empty-cart checkout
+returned `409`/`404`, but the FastAPI-generated spec never declared them —
+`UNDECLARED_STATUS`, verdict `FAIL`. The agent **fixed the server** (added the
+`responses=` declarations) and re-conformed to `PASS`. This happened on a
+freshly-built API with zero training data to fake from — the self-confirming loop
+broken by external feedback, exactly as the WHY describes. It also routed
+correctly: hey-api generated the client, fastmcp (`from_fastapi`) exposed it.
+
+**The miss (discovery, not capability).** The lazy prompt did **not** trigger
+`rac`. The agent built and verified by hand until prompt #3 explicitly named the
+package. Root cause: the skill trigger advertised *verify/consume* moments ("test
+this endpoint", "consume an API you didn't write") but **not the build moment** —
+so a pure "build an API" prompt never matched. Capability passed; discovery didn't.
+
+**Smaller findings.** (a) The scaffolded `DEFAULT_CONFIG` shipped an
+`Authorization: ${env:API_TOKEN}` header, which tripped `MISSING_ENV_VAR` on a
+local no-auth API. (b) Exposure used `from_fastapi` (trust + call) without the
+CodeMode transform the doctrine names. (c) Spec freshness was bottlenecked by the
+dev server running without `--reload` (rac re-reads, but the server wasn't
+regenerating the spec).
+
+**Response → v0.2.1.** Broaden the skill/AGENTS trigger to fire on the *build*
+moment ("building or implementing an endpoint → verify each against the running
+server as you build"), and comment out the default auth header so the common
+local-no-auth case is friction-free. (CodeMode usage and a `--reload` nudge noted,
+deferred.)
+
+> _Author's note: the lazy prompt failing to trigger is the most important thing
+> this test taught — record whether you'd now weight discovery (the trigger) above
+> capability, since the engine clearly works once it's reached for._
