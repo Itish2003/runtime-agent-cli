@@ -48,12 +48,18 @@ dependency) and **not** literal BM25.
 
 ## Status
 
-**In progress — direction decided, not yet landed.** The shipped
-`src/commands/search.ts` is still the naive version: plain `includes()` field
-boosts (operationId 3, summary 2, path 2, tags 1), **no IDF**, **no deterministic
-tie-break**, with the in-code comment "BM25 is the eventual upgrade." The
-determinism defect this ADR resolves is therefore still live in the code as of
-this writing.
+**Implemented** (`feat(search): field-aware ranking + deterministic tie-break`).
+`src/commands/search.ts` now scores per-field with IDF weighting
+(operationId 5 > path 4 > tags 3 > summary 2 > description 1), tokenizes with
+camelCase + path-segment splitting and a conservative plural fold, applies
+exact (×2) / prefix (×1.3) + all-terms (×1.5) + all-in-operationId (×1.5) bonuses,
+and sorts with a **deterministic total-order tie-break**
+(score → operationId → method → path), closing the determinism defect. It also
+searches the previously-ignored `description` field. The ranking is exported as a
+pure `rankOperations()` and covered by relevance + input-order-independence tests
+(`test/search.test.ts`).
 
-> _Author's note: confirm the final scorer shape once it lands — IDF formula,
-> field weights, and the exact tie-break key (e.g. operationId lexical)._
+> _Author's note: the deviation from the PRD's literal "BM25" wording is
+> deliberate (field-aware IDF over length-normalized BM25). Revisit only if fuzzy
+> / typo-tolerant search becomes a real need — that's the point where a dependency
+> like MiniSearch would re-earn consideration._
