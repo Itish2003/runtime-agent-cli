@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { Command } from "commander";
+import pkg from "../package.json" with { type: "json" };
 import { die } from "./envelope.ts";
 import { inspect } from "./commands/inspect.ts";
 import { search } from "./commands/search.ts";
@@ -14,7 +15,7 @@ const program = new Command();
 program
   .name("runtime-agent-cli")
   .description("A dev-time CLI that reflects your live API for AI coding agents. All output is JSON.")
-  .version("0.1.0");
+  .version(pkg.version);
 
 program
   .command("init")

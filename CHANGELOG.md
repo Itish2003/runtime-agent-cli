@@ -15,6 +15,11 @@ changes, patch = fixes).
   `Authorization: ${env:API_TOKEN}` header is commented out, so a local API without
   auth no longer trips `MISSING_ENV_VAR`.
 
+### Fixed
+- **`--version` reports the real version**, read from `package.json` (works in both
+  the `bunx`/source path and the compiled binary). It was hardcoded and stuck at
+  `0.1.0`.
+
 ## [0.2.0] — 2026-05-30
 
 ### Changed
