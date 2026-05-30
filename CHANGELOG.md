@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Versions follow
 [semantic versioning](https://semver.org/) (pre-1.0: minor = features/notable
 changes, patch = fixes).
 
+## [0.2.1] — 2026-05-30
+
+### Changed
+- **Teaching stubs now trigger on the *build* moment** (from a real field test).
+  `init`'s `AGENTS.md`/`SKILL.md` advertise "building or implementing an endpoint —
+  verify each against the running server as you build," not just verifying/consuming
+  an existing API. A lazy "build an API" prompt wasn't pulling the tool in.
+- **Default config is local-no-auth by default.** The scaffolded
+  `Authorization: ${env:API_TOKEN}` header is commented out, so a local API without
+  auth no longer trips `MISSING_ENV_VAR`.
+
 ## [0.2.0] — 2026-05-30
 
 ### Changed
