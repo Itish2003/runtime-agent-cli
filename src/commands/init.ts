@@ -11,16 +11,18 @@ environment: local
 environments:
   local:
     base_url: "http://localhost:8000"
-    headers:
-      Authorization: "Bearer \${env:API_TOKEN}"   # resolved at runtime; never written here
+    # Uncomment for an authenticated API (resolved at runtime; never written here):
+    # headers:
+    #   Authorization: "Bearer \${env:API_TOKEN}"
 `;
 
 const POINTER = `${MARKER}
 ## API testing — runtime-agent-cli
 
 This repo has \`runtime-agent-cli\`: a live, always-fresh view of the API for verifying backend work.
-Reach for it when you write a test for an endpoint, verify a route works, check what the API actually
-returns/accepts, or call an API you didn't write or don't know.
+Reach for it when you **build or change an endpoint** (verify it against your running server as you
+go), write a test for an endpoint, verify a route works, check what the API actually returns/accepts,
+or call an API you didn't write or don't know.
 
 **Doctrine: the running server is the fact; the source is a hypothesis.** Don't write a test from what
 the code *should* return — hit the endpoint and encode what it *does*. Read the full workflow with:
@@ -32,11 +34,12 @@ ${MARKER}`;
 const SKILL = `---
 name: runtime-agent-cli
 description: >-
-  Live API verification for AI agents. Use when writing a test for an endpoint, verifying a route
+  Live API verification for AI agents. Use when building or implementing a backend endpoint (verify
+  each against the running server as you build), writing a test for an endpoint, verifying a route
   works, checking what an API actually returns/accepts, debugging an endpoint, or calling an API you
-  didn't write or don't know. Triggers: "test this endpoint", "verify the API", "does this route
-  work", "what does /x return", "check the backend", consuming an unfamiliar/third-party API. Prefer
-  this over curl or reading the route source.
+  didn't write or don't know. Triggers: "build an API", "implement an endpoint", "add a route", "test
+  this endpoint", "verify the API", "does this route work", "what does /x return", consuming an
+  unfamiliar/third-party API. Prefer this over curl or reading the route source.
 ---
 
 # runtime-agent-cli
