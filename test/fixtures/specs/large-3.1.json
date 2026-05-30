@@ -1,0 +1,39 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Ranking corpus", "version": "1.0.0" },
+  "paths": {
+    "/users": {
+      "get": { "operationId": "listUsers", "summary": "List all users", "tags": ["users"], "responses": { "200": { "description": "ok" } } },
+      "post": { "operationId": "createUser", "summary": "Create a user", "tags": ["users"], "responses": { "201": { "description": "ok" } } }
+    },
+    "/users/{userId}": {
+      "get": { "operationId": "getUser", "summary": "Fetch a single user by id", "tags": ["users"], "responses": { "200": { "description": "ok" } } },
+      "delete": { "operationId": "deleteUser", "summary": "Remove a user", "tags": ["users"], "responses": { "204": { "description": "ok" } } }
+    },
+    "/users/{userId}/profile": {
+      "put": { "operationId": "updateUserProfile", "summary": "Update a user's profile", "tags": ["users"], "responses": { "200": { "description": "ok" } } }
+    },
+    "/orders": {
+      "get": { "operationId": "listOrders", "summary": "List orders", "tags": ["orders"], "responses": { "200": { "description": "ok" } } },
+      "post": { "operationId": "createOrder", "summary": "Place a new order", "tags": ["orders"], "responses": { "201": { "description": "ok" } } }
+    },
+    "/orders/{orderId}": {
+      "get": { "operationId": "getOrder", "summary": "Get an order", "tags": ["orders"], "responses": { "200": { "description": "ok" } } }
+    },
+    "/products/search": {
+      "get": { "operationId": "searchProducts", "summary": "Full-text product search", "tags": ["catalog"], "responses": { "200": { "description": "ok" } } }
+    },
+    "/invoices": {
+      "get": {
+        "operationId": "listInvoices",
+        "summary": "List invoices",
+        "tags": ["billing"],
+        "description": "Returns invoices belonging to the authenticated tenant account.",
+        "responses": { "200": { "description": "ok" } }
+      }
+    },
+    "/health": {
+      "get": { "operationId": "healthCheck", "summary": "Liveness probe", "tags": ["ops"], "responses": { "200": { "description": "ok" } } }
+    }
+  }
+}
