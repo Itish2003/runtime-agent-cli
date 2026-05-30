@@ -10,7 +10,9 @@ Think `vite dev` / `tsc --watch`, but for your API: stateless, on-demand, always
 
 ## Why
 
-When an AI agent builds or touches a backend, it verifies badly: it writes confirmation-bias tests from what it *assumes* the code does, or hand-builds fragile `curl` calls. This tool is the deterministic substrate the agent leans on — it owns the mechanics (parse, dereference, construct the request, redact secrets), the agent owns the judgment (what to test, is the response right).
+A coding agent writes the backend *and* the tests from the same set of assumptions, and never gets an outside signal — so when those assumptions are wrong, it's confidently wrong, and the green test suite says nothing. That's the self-confirming loop this tool breaks: it forces the agent to reconcile its assumptions against **what the live server actually returns** instead of grading its own homework.
+
+So when an AI agent builds or touches a backend, it stops verifying badly — no confirmation-bias tests written from what it *assumes* the code does, no fragile hand-built `curl` calls. This tool is the deterministic substrate the agent leans on — it owns the mechanics (parse, dereference, construct the request, redact secrets), the agent owns the judgment (what to test, is the response right).
 
 It also stays flat in token cost. On large specs that's the whole game:
 
@@ -81,7 +83,7 @@ rac conform getInvoice --input payload.json             # diff observed vs decla
   "mismatches": [
     {
       "code": "TYPE_MISMATCH",       // MISSING_REQUIRED_FIELD | TYPE_MISMATCH | EXTRA_FIELD
-      "path": "$.data.score",        //   | UNDECLARED_STATUS | SCHEMA_VIOLATION
+      "path": "$.data.score",        //   | UNDECLARED_STATUS | SCHEMA_NOT_DECLARED | SCHEMA_VIOLATION
       "expected": "integer",
       "observed": "string",
       "message": "$.data.score: expected integer, got string"
@@ -129,6 +131,23 @@ Shipped to agents via `guide` and the skill stub:
 5. Safe by default.
 
 ---
+
+## Partners
+
+`rac` does one thing — verify the live server against its spec — and composes with the rest of the spec-driven ecosystem instead of absorbing it. Two relationships matter, stated principle-first:
+
+- **The spec is the shared contract; codegen is a sibling, not a feature.** One OpenAPI spec feeds two consumers: a codegen tool produces the typed client, `rac` verifies the live server behind it. Feed the same spec to [hey-api](https://heyapi.dev) (e.g.) for the typed client; `rac` confirms the server it talks to actually behaves that way. `rac` does **not** generate code — codegen is a deliberate non-goal, not a gap.
+- **Exposing `rac` to third parties is an optional transport, not a core dependency.** When you want dynamic discovery plus transport-native OAuth for an external integration, wrap `rac`'s stable CLI/JSON contract in an MCP / CodeMode layer (e.g. [fastmcp](https://github.com/jlowin/fastmcp)). That's an EXPOSE transport sitting *outside* the tool — `rac` ships no built-in MCP server and needs none to do its job.
+
+## Development
+
+```bash
+bun install
+bun test          # the suite pins the doctrine: §7 envelope, graceful degradation, diff soundness
+bun run typecheck # the package ships raw .ts, so tsc is the only type guard
+```
+
+CI gates publishing on both `typecheck` and `test` (see `.github/workflows/publish.yml`).
 
 ## Notes & limits
 
