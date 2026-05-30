@@ -1,6 +1,6 @@
 {
   "name": "runtime-agent-cli",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A dev-time CLI that reflects your live API for AI coding agents — verify what the server actually does, not what the code assumes.",
   "license": "MIT",
   "author": "Itish Srivastava (https://github.com/Itish2003)",

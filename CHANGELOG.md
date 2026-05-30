@@ -1,0 +1,54 @@
+# Changelog
+
+All notable changes to this project are documented here. Versions follow
+[semantic versioning](https://semver.org/) (pre-1.0: minor = features/notable
+changes, patch = fixes).
+
+## [0.2.0] — 2026-05-30
+
+### Changed
+- **Search is now field-aware and deterministic.** `search` ranks with per-field
+  IDF weighting (operationId > path > tags > summary > description), camelCase +
+  path-segment tokenization, and exact/prefix/all-terms bonuses — replacing the
+  flat substring scorer. It now also searches the `description` field.
+- **Doctrine expanded.** `guide` now leads with a `WHY` (the self-confirming-loop
+  failure mode the tool exists to break) and adds a `PARTNERS` section routing to
+  hey-api (build the client from the same spec) and MCP/CodeMode (expose via a
+  transport) — principle-first, tools as examples. The "observe" tenet now names
+  the bias explicitly.
+- **Agent teaching stubs sharpened.** `init`'s scaffolded `AGENTS.md`/`SKILL.md`
+  pointers now show the full `search → inspect → run → conform` loop and trigger
+  on more of the right moments (incl. consuming an unfamiliar/third-party API).
+
+### Fixed
+- **Search ranking is now deterministic.** Equal-scoring operations previously
+  resolved by input order (unstable); a total-order tie-break
+  (score → operationId → method → path) makes ranking reproducible.
+
+### Documentation
+- New `docs/` design record: a design journal + 12 ADRs (Context/Decision/
+  Rationale/Alternatives/Status) capturing the package's decisions and rationale.
+- README accuracy + positioning refresh; `conform` mismatch-code list completed
+  (added `SCHEMA_NOT_DECLARED`) and aligned across the README and `guide` hints.
+
+## [0.1.1] — 2026-05-29
+
+### Fixed
+- `search --limit`: guard against `NaN`/invalid values (previously returned zero
+  results silently).
+- `inspect`: surface `cookie` parameters (were parsed then dropped from output).
+- `init`: report `created` for newly-written files (was always `updated`).
+
+### Changed
+- Enforced the `Envelope` output type on `emit()`; typed schemas via
+  `openapi-types` through the schema-handling core.
+
+### Added
+- `tsc --noEmit` typecheck + `bun test` suite, both gating publish in CI;
+  pinned TypeScript.
+
+## [0.1.0] — 2026-05-28
+
+- Initial release: a dev-time CLI that projects a live OpenAPI spec as a
+  discoverable, executable surface for AI coding agents
+  (`init`/`guide`/`search`/`inspect`/`run`/`doctor`/`conform`).
