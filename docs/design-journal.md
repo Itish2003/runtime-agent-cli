@@ -181,13 +181,17 @@ Three threads are deliberately *not* in the core, and each has its own ADR:
   verifies, hey-api generates the client. Codegen stays a non-goal. A `rac sdk`
   subcommand wrapping hey-api was considered and rejected for purity
   ([ADR 0008](./decisions/0008-heyapi-sibling-not-feature.md)).
-- **MCP/CodeMode via an inverted primitive.** The `runtimecli-next-step.md` memo
-  argues the differentiated MCP surface is not "fastmcp + doctrine" but a sandbox
-  whose verbs *verify*: `fire_and_conform` (execute + reconcile) instead of MCP's
-  `call_tool` (trust + execute). This was the planned V2 all along ("swap the CLI
-  projection layer for an MCP projection layer," `agentcli.md` line 661). **Status:
-  Open** — not built; there is no `examples/` directory and no `mcp` command in the
-  repo ([ADR 0009](./decisions/0009-mcp-codemode-inversion.md)).
+- **MCP is the remote transport — and it's fastmcp, not ours to build.** MCP earns
+  its place *only* for exposing the API over the internet to remote agents; locally
+  the `rac` CLI already wins, so there's nothing to add. And fastmcp already does
+  the remote job directly — `OpenAPIProvider` + `CodeMode` + HTTP + OAuth turn a
+  spec into a curated MCP surface — so a custom `rac`-wrapping companion would be a
+  thin wrapper over it. An earlier idea (an inverted `fire_and_conform` primitive,
+  execute + reconcile) was explored and **set aside**: a remote surface is a *call*
+  surface, and verification is a local concern the CLI already serves. The decision
+  is to **route to fastmcp directly** (a partner, like hey-api), reserving a
+  custom wrap only for a future "verified agent gateway"
+  ([ADR 0009](./decisions/0009-mcp-codemode-inversion.md)).
 - **Two add-on shapes keep the core pure.** An inward npm peer (hey-api, TS) vs an
   outward wrapper (fastmcp, Python). The core gains zero runtime deps either way
   ([ADR 0010](./decisions/0010-optional-addons-two-shapes.md)).

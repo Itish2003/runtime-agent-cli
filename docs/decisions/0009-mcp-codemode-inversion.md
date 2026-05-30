@@ -1,58 +1,63 @@
-# 0009 — MCP/CodeMode via an inverted primitive (`fire_and_conform`)
+# 0009 — MCP as the remote transport: use fastmcp directly, don't wrap rac (yet)
 
 ## Context
 
-MCP projection was the planned V2 from the start — "swap the CLI projection layer
-for an MCP projection layer" (`agentcli.md` line 661; PRD §10 Later). FastMCP's
-`OpenAPIProvider` + `CodeMode` already turns an OpenAPI spec into
-search/execute meta-tools plus a sandbox. So the deciding question is not
-doctrine-coherence but: **what does `rac` add that fastmcp does not?**
-(`runtimecli-next-step.md` "The one test").
+MCP answers exactly one need for this project: **exposing the API's capabilities
+over the internet to remote agents.** Locally there is nothing to add — the agent
+runs the `rac` CLI directly against the repo (and the CLI is already always-fresh).
+MCP earns its place *only* as the network transport for remote exposure (an
+Axis-2 / transport concern), not as a local tool.
+
+The deciding question (`runtimecli-next-step.md`, "The one test"): **what would a
+custom `rac`-wrapping MCP package add that fastmcp does not?**
 
 ## Decision
 
-Expose the transport not as MCP's trusting `call_tool`, but via an **inverted
-primitive** — `fire_and_conform(op, input)` = *execute + reconcile*, returning
-`{ observed, declared, mismatches, verdict }` (`runtimecli-next-step.md` "The
-centerpiece"). Ship it as an **external PyPI companion** (fastmcp is Python) plus
-a `rac mcp` pointer — not as an npm dependency of the core.
+**Use existing fastmcp directly; do NOT ship a custom MCP companion** for plain
+remote exposure. fastmcp generates an MCP server from any OpenAPI spec
+(`OpenAPIProvider`, v3.0.0+), collapses it with `CodeMode` (search/execute
+meta-tools + sandbox, so the catalog isn't dumped), and serves over HTTP with
+native OAuth. That *is* the transport layer. Point **fastmcp + CodeMode** at the
+project's `/openapi.json` and deploy. Treat it as a partner — exactly what the
+PARTNERS doctrine already says ("expose via a transport, e.g. fastmcp"), the same
+sibling relationship as hey-api.
 
 ## Rationale
 
-- **The inversion is the entire differentiated product.** fastmcp's sandbox gives
-  `call_tool` (trust + execute), the exact opposite of tenet 1. A `rac`-flavored
-  sandbox's verbs *verify*. Neither fastmcp nor hey-api can offer it because
-  neither has the diff engine (`runtimecli-next-step.md` "The centerpiece").
-- **It extends, not contradicts, the thesis.** CodeMode's search + on-demand
-  schema fetch *is* the "don't dump the spec into context" design; the
-  always-fresh re-read survives because the engine re-reads per call
-  (`runtimecli-next-step.md`; PRD §12 P2 cites the CodeMode pattern).
-- **Python sidecar that shells out to the `rac` binary** keeps `rac` the single
-  conform engine — MCP is just another projection over the stable JSON contract
-  ([ADR 0006](./0006-language-neutral-core.md);
-  `runtimecli-next-step.md` "The fork", option (a)).
-- **Strategic upside:** a hosted, networked conform/drift surface is the natural
-  wedge into the open-core commercial layer — far more defensible than a CLI
-  (PRD §9c; `runtimecli-next-step.md` "Strategic upside").
+- **A custom wrapper would be a thin layer over fastmcp** — the anti-pattern the
+  deciding question exists to catch. fastmcp already does spec→MCP + CodeMode +
+  OAuth + HTTP.
+- **The remote surface is a *call* surface, not a *verify* surface.** Third-party
+  consumers want to invoke the API; conformance is the provider's concern. So the
+  `fire_and_conform` inversion — `rac`'s differentiator — is not what a remote
+  exposure surface needs.
+- **Verification stays local.** `conform` is served by the CLI in the dev loop,
+  where the spec changes constantly and the always-fresh re-read matters. A
+  deployed API's spec is stable between deploys, so per-call freshness adds little
+  remotely (a refresh/restart on deploy covers it).
+- **fastmcp's own guidance:** naive OpenAPI→MCP underperforms for complex APIs
+  ("Stop Converting Your REST APIs to MCP"); the fix is curation + CodeMode —
+  still fastmcp, no custom package.
 
 ## Alternatives considered
 
-- **(b) Port the conform/diff engine to Python** — rejected: duplicate logic, two
-  sources of truth (`runtimecli-next-step.md` "The fork").
-- **(c) Build a TS MCP framework over the existing engine** — rejected for now:
-  rebuilds what fastmcp gives free, including the CodeMode transform
-  (`runtimecli-next-step.md` "The fork").
-- **Plain fastmcp `OpenAPIProvider` (trust + `call_tool`)** — rejected: trusts the
-  spec; no verification, which is the whole point.
+- **Earlier decision — a custom PyPI companion wrapping `rac` with
+  `fire_and_conform` over MCP** — superseded. It only re-earns its place if the
+  goal becomes a deliberate **verified agent gateway**: remote access that *also*
+  reconciles observed-vs-declared. That is a more ambitious product than plain
+  exposure. The `examples/mcp` spike (`worktree-agent-afeb…`, kept) is the
+  reference seed if that path is ever taken.
+- **Port the diff engine to Python** — rejected (two sources of truth).
+- **A TS MCP framework over the engine** — rejected (rebuilds what fastmcp gives
+  free, including CodeMode).
 
 ## Status
 
-**Open — not built.** No `mcp` command in `src/commands/` and no `examples/`
-directory in the repo (both verified). The task framing calls this a prototyped
-`examples/` spike with the companion not yet built; the spike is not present in
-this worktree. Recommended next step: a one-meta-tool fastmcp server backed by
-`rac conform`, dogfooded against a real FastAPI app to decide whether the MCP
-projection earns its keep (`runtimecli-next-step.md` "Recommended next step").
+**Decided: route to fastmcp directly; ship no `rac` MCP package.** The
+remote-exposure need is met by fastmcp + CodeMode + OAuth on the spec; `rac`'s job
+is the local verify loop plus the doctrine that routes here. Revisit only if a
+verified-gateway product becomes a deliberate goal.
 
-> _Author's note: is the inversion still the bet you'd lead with, or has dogfooding
-> shifted your view?_
+> _Author's note: the inversion (`fire_and_conform`) was a real idea worth probing
+> — record whether you still want it as a future "verified gateway," or consider it
+> closed in favor of "rac local + fastmcp remote."_
