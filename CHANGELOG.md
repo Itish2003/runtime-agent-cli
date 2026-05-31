@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Versions follow
 [semantic versioning](https://semver.org/) (pre-1.0: minor = features/notable
 changes, patch = fixes).
 
+## [0.2.2] — 2026-05-31
+
+### Fixed
+- **Deep-but-acyclic schemas are no longer mislabeled "recursive."** `conform`'s
+  schema cloner conflated two truncation triggers — a genuine object cycle
+  (`seen.has`) and mere nesting depth — under one `SCHEMA_VIOLATION` message, so a
+  legitimate 17-deep schema (paginated envelope → items → nested `anyOf` settings,
+  e.g. `list_jobs`) hard-FAILed as "recursive references." The triggers are now
+  separate with honest, distinct messages, and `MAX_SCHEMA_DEPTH` is raised
+  12 → 64 so real-world deep schemas clone fully and validate correctly. Genuine
+  cycles still FAIL (fail-closed: the checker never lies). Found in a field test.
+
 ## [0.2.1] — 2026-05-30
 
 ### Changed
