@@ -33,3 +33,29 @@ test("TS-03 recursive schema → FAIL (truncation surfaced, never a false PASS)"
   expect(res.verdict).toBe("FAIL");
   expect(res.mismatches.some((m) => /recursive/i.test(m.message))).toBe(true);
 });
+
+// TS-03b — A deep-but-acyclic schema (paginated envelope → items → nested anyOf
+// settings, like list_jobs) is NOT recursive and must validate fully: a conforming
+// body → PASS, never mislabeled "recursive". Regression guard for the depth-vs-cycle
+// conflation (old MAX_SCHEMA_DEPTH=12 truncated this legitimate schema). (diff.ts)
+test("TS-03b deep acyclic schema → PASS (not mistaken for recursion)", async () => {
+  const cat = await loadCatalog(fx("deep-acyclic-3.1.json"));
+  const op = cat.byId.get("listJobs")!;
+  const body = {
+    next_cursor: "abc",
+    items: [
+      {
+        id: "j1",
+        interview_settings: {
+          offline_proctoring: {
+            rules: { camera: { constraints: { resolution: { min: 480, max: 1080 } } } },
+          },
+        },
+      },
+    ],
+  };
+  const res = diffResponse(200, body, op);
+  expect(res.verdict).toBe("PASS");
+  expect(res.mismatches).toHaveLength(0);
+  expect(res.mismatches.some((m) => /recursive|depth/i.test(m.message))).toBe(false);
+});

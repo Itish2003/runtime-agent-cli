@@ -1,0 +1,83 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Deep but acyclic 3.1", "version": "1.0.0" },
+  "paths": {
+    "/jobs": {
+      "get": {
+        "operationId": "listJobs",
+        "summary": "Paginated jobs with deeply nested, non-recursive settings",
+        "responses": {
+          "200": {
+            "description": "a page of jobs",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/JobsPage" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "JobsPage": {
+        "type": "object",
+        "properties": {
+          "next_cursor": { "type": "string" },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "interview_settings": {
+                  "anyOf": [
+                    { "type": "null" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "offline_proctoring": {
+                          "anyOf": [
+                            { "type": "null" },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "rules": {
+                                  "type": "object",
+                                  "properties": {
+                                    "camera": {
+                                      "type": "object",
+                                      "properties": {
+                                        "constraints": {
+                                          "type": "object",
+                                          "properties": {
+                                            "resolution": {
+                                              "type": "object",
+                                              "properties": {
+                                                "min": { "type": "integer" },
+                                                "max": { "type": "integer" }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

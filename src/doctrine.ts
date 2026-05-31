@@ -50,6 +50,6 @@ export const HINTS = {
     "A mismatch from `conform` means the server response diverges from the spec — fix the server OR the spec, not the test. " +
     "Mismatch codes: MISSING_REQUIRED_FIELD (field absent), TYPE_MISMATCH (wrong type), EXTRA_FIELD (undeclared field with additionalProperties:false), " +
     "UNDECLARED_STATUS (response status not in spec), SCHEMA_NOT_DECLARED (status declared but has no response schema — PASS, nothing to check), " +
-    "SCHEMA_VIOLATION (constraint failed or recursive schema truncated). " +
+    "SCHEMA_VIOLATION (constraint failed, recursive schema truncated, or schema deeper than the checker validates — the message says which). " +
     "Run `inspect <operationId>` to compare the declared schema.",
 };

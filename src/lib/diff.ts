@@ -34,16 +34,30 @@ function toPath(instancePath: string): string {
   );
 }
 
-// Deep-clone a schema object with a cycle guard — ajv cannot handle circular
-// references, which dereference() can produce for recursive spec schemas.
-// Circular nodes are replaced with `true` (accept anything at that node) and
-// the truncation is recorded so the caller can surface an explicit FAIL rather
-// than a silent false-negative PASS.
-const MAX_SCHEMA_DEPTH = 12;
+// Deep-clone a schema object with two distinct truncation guards — ajv cannot
+// handle circular references, which dereference() produces for recursive spec
+// schemas. Truncated nodes are replaced with `true` (accept anything at that
+// node) and recorded so the caller can surface an explicit FAIL rather than a
+// silent false-negative PASS.
+//
+// The two guards are kept separate on purpose:
+//   • cyclePaths — a node recurring on its own ancestry (seen.has) = a genuine
+//     cycle. Fires at any depth; the only sound response is to truncate.
+//   • depthPaths — acyclic nesting that exceeds MAX_SCHEMA_DEPTH. Real-world
+//     specs (paginated envelopes + nested anyOf settings) routinely reach the
+//     high teens, so the cap is generous; only pathological depth trips it.
+// Conflating them mislabels a deep-but-valid schema as "recursive" (see the
+// list_jobs false alarm). seen.has does all cycle protection independent of the
+// cap, so this bound only fences off runaway acyclic nesting.
+const MAX_SCHEMA_DEPTH = 64;
 
-interface CloneResult {
+interface Truncation {
+  cyclePaths: string[]; // JSON-Pointer-style paths where a genuine cycle was cut
+  depthPaths: string[]; // paths where acyclic nesting exceeded MAX_SCHEMA_DEPTH
+}
+
+interface CloneResult extends Truncation {
   schema: unknown;
-  cyclePaths: string[]; // JSON-Pointer-style paths where truncation occurred
 }
 
 function cloneSchemaInner(
@@ -51,22 +65,26 @@ function cloneSchemaInner(
   depth: number,
   seen: Set<object>,
   path: string,
-  cyclePaths: string[],
+  trunc: Truncation,
 ): unknown {
   if (!schema || typeof schema !== "object") return schema;
-  if (seen.has(schema as object) || depth > MAX_SCHEMA_DEPTH) {
-    cyclePaths.push(path);
+  if (seen.has(schema as object)) {
+    trunc.cyclePaths.push(path);
     return true; // accept anything at truncation point — mismatch is reported separately
+  }
+  if (depth > MAX_SCHEMA_DEPTH) {
+    trunc.depthPaths.push(path);
+    return true;
   }
   const next = new Set(seen).add(schema as object);
   if (Array.isArray(schema)) {
     return (schema as unknown[]).map((item, i) =>
-      cloneSchemaInner(item, depth + 1, next, `${path}/${i}`, cyclePaths),
+      cloneSchemaInner(item, depth + 1, next, `${path}/${i}`, trunc),
     );
   }
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(schema as Record<string, unknown>)) {
-    out[k] = cloneSchemaInner(v, depth + 1, next, `${path}/${k}`, cyclePaths);
+    out[k] = cloneSchemaInner(v, depth + 1, next, `${path}/${k}`, trunc);
   }
   // OpenAPI 3.0 nullable: true → convert to type array so ajv understands it.
   if (out.nullable === true && typeof out.type === "string") {
@@ -77,9 +95,9 @@ function cloneSchemaInner(
 }
 
 function cloneSchema(schema: unknown): CloneResult {
-  const cyclePaths: string[] = [];
-  const cloned = cloneSchemaInner(schema, 0, new Set(), "#", cyclePaths);
-  return { schema: cloned, cyclePaths };
+  const trunc: Truncation = { cyclePaths: [], depthPaths: [] };
+  const cloned = cloneSchemaInner(schema, 0, new Set(), "#", trunc);
+  return { schema: cloned, ...trunc };
 }
 
 function mapError(err: ErrorObject): Mismatch {
@@ -188,7 +206,7 @@ export function diffResponse(status: number, body: unknown, op: Operation): Diff
     };
   }
 
-  const { schema: safeSchema, cyclePaths } = cloneSchema(found.schema);
+  const { schema: safeSchema, cyclePaths, depthPaths } = cloneSchema(found.schema);
   let validate: ReturnType<typeof ajv.compile>;
   try {
     validate = ajv.compile(safeSchema as AnySchema);
@@ -211,13 +229,22 @@ export function diffResponse(status: number, body: unknown, op: Operation): Diff
   const valid = validate(body);
   const mismatches: Mismatch[] = valid ? [] : (validate.errors ?? []).map(mapError);
 
-  // Recursive schemas were truncated — validation is incomplete at those paths.
-  // Surface this as an explicit FAIL so agents don't act on a false-positive PASS.
+  // A truncated node was validated as `true` (accept anything), so validation is
+  // incomplete there. Surface it as an explicit FAIL so agents don't act on a
+  // false-positive PASS — but name the cause honestly: a genuine cycle and mere
+  // over-depth are different problems and read differently to whoever's debugging.
   if (cyclePaths.length > 0) {
     mismatches.push({
       code: "SCHEMA_VIOLATION",
       path: "$",
       message: `Schema contains recursive references — validation was truncated at: ${cyclePaths.join(", ")}. Conformance cannot be fully guaranteed; inspect the spec manually.`,
+    });
+  }
+  if (depthPaths.length > 0) {
+    mismatches.push({
+      code: "SCHEMA_VIOLATION",
+      path: "$",
+      message: `Schema nesting exceeds the maximum validation depth of ${MAX_SCHEMA_DEPTH} — validation was truncated at: ${depthPaths.join(", ")}. This is not a cycle; the schema is just deeper than the checker validates. Conformance below those paths cannot be guaranteed.`,
     });
   }
 
