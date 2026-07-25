@@ -7,6 +7,8 @@ import {
   SendMessageRequest,
   SendMessageResponse,
 } from "@a2a-js/sdk";
+import { checkSpend, clientIp } from "../lib/spend-guard";
+import { CHAT_PAGE_HTML } from "../lib/chat-page";
 
 // A2A spec 1.0 inbound surface. Same reference implementation as
 // fable2.0/eve-agent — serialization through @a2a-js/sdk's generated codecs
@@ -139,7 +141,12 @@ function racCmd(input: Record<string, unknown>): string {
 async function awaitTurnReply(
   stream: ReadableStream<StreamEvent>,
   sentText: string,
-  timeoutMs = 180_000,
+  // Observed live: the local gemma4:12b box (behind the Cloudflare quick
+  // tunnel) replies in ~40-80s normally but spiked past 180s once under
+  // contention, tripping this timeout for a request that would have
+  // otherwise succeeded. Matches the portfolio's 540s convention for the
+  // same model chain rather than inventing a smaller number.
+  timeoutMs = 540_000,
 ): Promise<{ reply: string; frames: ReplayFrame[] }> {
   const reader = stream.getReader();
   const timer = setTimeout(() => void reader.cancel().catch(() => {}), timeoutMs);
@@ -219,6 +226,25 @@ function rpcError(id: unknown, code: number, message: string, status = 200) {
 export default defineChannel({
   cors: true,
   routes: [
+    // Human-facing surface at the agent's own origin. Static HTML, vanilla
+    // JS, no build step (agent/lib/chat-page.ts); it talks to /a2a and the
+    // agent card below, both already public on this channel.
+    //
+    // NOT mounted at literal "/": eve's nitro host unconditionally registers
+    // its own framework landing page at GET "/" before any channel routes
+    // are registered (registerApplicationRoutes in
+    // eve/dist/src/internal/nitro/host/configure-nitro-routes.js calls
+    // addFrameworkVirtualHandler for "/" first, then
+    // registerChannelVirtualHandlers) — confirmed empirically: a GET("/")
+    // route here, and even a public/index.html static file, both lost to
+    // eve's built-in "eve" page. No documented config disables it. "/chat"
+    // is the closest available root-level path.
+    GET("/chat", async () =>
+      new Response(CHAT_PAGE_HTML, {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      }),
+    ),
+
     // The spec path is /.well-known/agent-card.json, but a literal route
     // ending in ".json" breaks eve's build (nitro/rolldown parses the
     // generated route module as JSON because of the extension). Matching the
@@ -256,6 +282,32 @@ export default defineChannel({
         .join("\n");
       if (!text) {
         return rpcError(rpc.id, -32602, "Invalid params: no text parts in message");
+      }
+
+      // Spend guard (ported from the portfolio's agent/lib/spend-guard.ts):
+      // this channel is defineChannel, not eveChannel, so it has no auth
+      // walk to hook into — the ceiling check runs directly in the handler,
+      // same Neon ledger, same per-IP/global session and token caps.
+      // NOTE: contextId is caller-supplied, not server-assigned, so a
+      // hostile caller can send a fresh one every request and never accrue
+      // against the per-IP session cap. The token ceilings still bound
+      // total spend regardless. Left as-is (matches the portfolio's session
+      // semantics for legitimate multi-turn callers); tighten if the
+      // per-IP session cap needs to be un-bypassable.
+      const newSession = !params.message?.contextId;
+      try {
+        const verdict = await checkSpend(clientIp(req.headers), newSession);
+        if (!verdict.allowed) {
+          return rpcError(
+            rpc.id,
+            -32000,
+            `Over today's budget (${verdict.reason}). Come back tomorrow.`,
+            403,
+          );
+        }
+      } catch (err) {
+        // Ledger unreachable ≠ policy violation: fail OPEN on infra errors.
+        console.warn("spend-guard: ledger unavailable, letting request pass", err);
       }
 
       const contextId = params.message?.contextId || randomUUID();
