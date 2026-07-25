@@ -171,7 +171,7 @@ export default defineTool({
   description:
     "Run the real runtime-agent-cli core against a live OpenAPI target and return real JSON output — the same search/inspect/run logic the published CLI uses, called in-process (no shelling out, which doesn't work on Vercel). Actions: 'search' finds operations by keyword; 'inspect' resolves one operation's schema plus a ready example payload; 'run' executes a read-only (GET/HEAD) operation for real — write verbs always return WRITE_BLOCKED, which is the enforced-safety demo, not a failure. Use this whenever a visitor wants to see the tool actually work.",
   inputSchema: z.object({
-    action: z.enum(["search", "inspect", "run", "doctor", "conform"]),
+    action: z.enum(["search", "inspect", "run"]),
     query: z.string().optional().describe("Keyword for 'search' (e.g. 'pet')."),
     operationId: z.string().optional().describe("Required for 'inspect' and 'run'."),
     dryRun: z
@@ -183,12 +183,7 @@ export default defineTool({
     try {
       if (action === "search") return await doSearch(query);
       if (action === "inspect") return await doInspect(operationId);
-      if (action === "run") return await doRun(operationId, Boolean(dryRun));
-      return {
-        ok: false,
-        error: "NOT_SUPPORTED_IN_DEMO",
-        message: `'${action}' isn't wired into the hosted demo yet — it needs more of the CLI's config-file layer than search/inspect/run do. Try 'search', 'inspect', or 'run'.`,
-      };
+      return await doRun(operationId, Boolean(dryRun));
     } catch (e) {
       return { ok: false, error: "TOOL_ERROR", message: (e as Error).message?.slice(0, 500) ?? "unknown error" };
     }

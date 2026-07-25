@@ -28,9 +28,11 @@ The output stays ~500 tokens regardless of spec size — so the bigger the API, 
 
 ## Install & quickstart
 
+Requires [Bun](https://bun.sh) — the CLI's bin entry runs directly as TypeScript via Bun's runtime, no Node/npm execution path.
+
 ```bash
 # Option A — global install (recommended for repeated use)
-npm install -g runtime-agent-cli   # or: bun add -g runtime-agent-cli
+bun add -g runtime-agent-cli
 rac init                           # short alias, same as runtime-agent-cli init
 
 # Option B — zero-install, always-latest
@@ -138,6 +140,17 @@ Shipped to agents via `guide` and the skill stub:
 
 - **The spec is the shared contract; codegen is a sibling, not a feature.** One OpenAPI spec feeds two consumers: a codegen tool produces the typed client, `rac` verifies the live server behind it. Feed the same spec to [hey-api](https://heyapi.dev) (e.g.) for the typed client; `rac` confirms the server it talks to actually behaves that way. `rac` does **not** generate code — codegen is a deliberate non-goal, not a gap.
 - **Exposing `rac` to third parties is an optional transport, not a core dependency.** When you want dynamic discovery plus transport-native OAuth for an external integration, wrap `rac`'s stable CLI/JSON contract in an MCP / CodeMode layer (e.g. [fastmcp](https://github.com/jlowin/fastmcp)). That's an EXPOSE transport sitting *outside* the tool — `rac` ships no built-in MCP server and needs none to do its job.
+
+---
+
+## Hosted demo
+
+Live product page and agent chat: https://runtime-agent-cli-agent.vercel.app/chat
+
+The agent behind that page runs the CLI's own search/inspect/run logic in-process against a live OpenAPI target, read-only. It's also reachable programmatically:
+
+- A2A endpoint (JSON-RPC `SendMessage`): `/a2a`
+- Agent card: `/.well-known/agent-card.json`
 
 ## Development
 

@@ -122,10 +122,10 @@ a { color: var(--accent); }
     <div class="install">
       <div class="install-head">INSTALL</div>
       <div class="install-row">
-        <code id="install-cmd">npm install -g runtime-agent-cli</code>
+        <code id="install-cmd">bun add -g runtime-agent-cli</code>
         <button type="button" id="copy-btn">COPY</button>
       </div>
-      <div class="install-alt">or: bunx runtime-agent-cli — requires Bun</div>
+      <div class="install-alt">requires Bun — or zero-install: bunx runtime-agent-cli</div>
     </div>
     <div class="capabilities">
       <div class="cap"><span class="glyph">[init]</span> writes .runtime-agent-cli.yaml pointing at your spec</div>
