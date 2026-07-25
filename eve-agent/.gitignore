@@ -6,3 +6,4 @@ node_modules
 .nitro
 dist
 *.tsbuildinfo
+.vercel

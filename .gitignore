@@ -6,3 +6,4 @@ rac
 *.tsbuildinfo
 .runtime-agent-cli.state.json
 test/fixtures/.tmp-*.json
+.vercel
