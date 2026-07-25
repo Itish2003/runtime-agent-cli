@@ -18,10 +18,12 @@
     "@ai-sdk/openai-compatible": "3.0.14",
     "ai": "^7.0.34",
     "eve": "0.27.5",
+    "pg": "^8.22.0",
     "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/node": "24.x",
+    "@types/pg": "^8.20.0",
     "typescript": "7.0.2"
   },
   "overrides": {
