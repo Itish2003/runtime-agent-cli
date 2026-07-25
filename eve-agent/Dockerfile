@@ -10,6 +10,10 @@ RUN npm ci
 
 COPY tsconfig.json ./
 COPY agent ./agent
+COPY front.mjs ./
 RUN npx eve build
 
-CMD ["npx", "eve", "start", "--host", "0.0.0.0"]
+# eve binds only the internal port; front.mjs owns the public port and
+# rewrites "/" to "/chat" (see front.mjs for why this can't live in eve).
+ENV EVE_INTERNAL_PORT=2002
+CMD sh -c "npx eve start --host 127.0.0.1 --port $EVE_INTERNAL_PORT & node front.mjs"
