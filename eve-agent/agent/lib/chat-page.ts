@@ -48,8 +48,21 @@ a { color: var(--accent); }
 }
 .masthead .path { color: var(--trace); font-size: var(--fs-small); }
 .masthead .path::before { content: "❯ "; color: var(--accent); }
-.masthead h1 { font-size: 1.25rem; font-weight: 400; margin: 0.5rem 0 0.375rem; letter-spacing: 0.06em; }
-.masthead p { color: var(--dim); max-width: 68ch; margin: 0; }
+.pitch { display: flex; flex-direction: column; gap: 0.875rem; }
+.pitch h1 { font-size: 1.25rem; font-weight: 400; margin: 0; letter-spacing: 0.06em; }
+.pitch .tagline { color: var(--fg); max-width: 70ch; margin: 0; line-height: 1.6; }
+.install { border: 1px solid var(--line); background: var(--panel); }
+.install-head { padding: 0.5rem var(--pad); border-bottom: 1px solid var(--line); color: var(--trace); font-size: var(--fs-label); letter-spacing: var(--track); text-transform: uppercase; }
+.install-row { display: flex; align-items: stretch; }
+.install-row code { flex: 1; padding: 0.75rem; color: var(--accent); font-family: var(--mono); font-size: 0.8125rem; overflow-x: auto; white-space: pre; }
+.install-row button { font-family: var(--mono); font-size: var(--fs-small); color: var(--dim); background: transparent; border: 0; border-left: 1px solid var(--line); padding: 0 1rem; cursor: pointer; white-space: nowrap; }
+.install-row button:hover { color: var(--accent); }
+.install-alt { padding: 0 var(--pad) 0.625rem; color: var(--trace); font-size: var(--fs-small); }
+.capabilities { display: flex; flex-direction: column; gap: 0.375rem; }
+.cap { color: var(--dim); font-size: var(--fs-small); max-width: 80ch; }
+.cap .glyph { color: var(--accent); }
+.pitch-link { margin: 0; font-size: var(--fs-small); }
+.section-head { color: var(--trace); font-size: var(--fs-label); letter-spacing: var(--track); text-transform: uppercase; border-bottom: 1px dashed var(--line); padding-bottom: 0.5rem; }
 .chat { border: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: min(33.75rem, 70dvh); }
 .chat-head {
   padding: 0.625rem var(--pad); border-bottom: 1px solid var(--line);
@@ -88,7 +101,6 @@ a { color: var(--accent); }
 .composer button:disabled { color: var(--trace); cursor: default; }
 .statusline { padding: 0.375rem var(--pad); border-top: 1px solid var(--line); color: var(--trace); font-size: var(--fs-label); display: flex; justify-content: space-between; gap: var(--pad); }
 .statusline .err { color: var(--err); }
-footer { color: var(--trace); font-size: var(--fs-small); border-top: 1px dashed var(--line); padding-top: 0.875rem; }
 @keyframes blink { 50% { opacity: 0; } }
 @keyframes rise { from { opacity: 0; transform: translateY(0.25rem); } }
 </style>
@@ -97,9 +109,35 @@ footer { color: var(--trace); font-size: var(--fs-small); border-top: 1px dashed
 <div class="shell">
   <div class="masthead">
     <div class="path">runtime-agent-cli-agent</div>
-    <h1 id="agent-name">loading…</h1>
-    <p id="agent-desc"></p>
   </div>
+  <div class="pitch">
+    <h1>runtime-agent-cli</h1>
+    <p class="tagline">
+      A dev-time CLI that reflects a <b>live API's OpenAPI spec</b> into a discoverable,
+      executable surface for AI coding agents. It breaks the self-confirming loop where a
+      coding agent writes the backend <i>and</i> the tests from the same assumptions —
+      the tool owns the mechanics (parse, dereference, construct, redact); the agent owns
+      the judgment (what to test, is the response right).
+    </p>
+    <div class="install">
+      <div class="install-head">INSTALL</div>
+      <div class="install-row">
+        <code id="install-cmd">npm install -g runtime-agent-cli</code>
+        <button type="button" id="copy-btn">COPY</button>
+      </div>
+      <div class="install-alt">or: bunx runtime-agent-cli — requires Bun</div>
+    </div>
+    <div class="capabilities">
+      <div class="cap"><span class="glyph">[init]</span> writes .runtime-agent-cli.yaml pointing at your spec</div>
+      <div class="cap"><span class="glyph">[search]</span> finds operations by keyword across the live spec</div>
+      <div class="cap"><span class="glyph">[inspect]</span> resolves an operation's schema + a ready example payload</div>
+      <div class="cap"><span class="glyph">[run]</span> executes against the live server</div>
+      <div class="cap"><span class="glyph">[safe]</span> write verbs return WRITE_BLOCKED by default — enforced in the tool, not a UI toggle</div>
+      <div class="cap"><span class="glyph">[json]</span> deterministic output, even on error</div>
+    </div>
+    <p class="pitch-link"><a id="docs-link" href="https://github.com/Itish2003/runtime-agent-cli" target="_blank" rel="noopener">github.com/Itish2003/runtime-agent-cli</a></p>
+  </div>
+  <div class="section-head">ask the project's own agent</div>
   <div class="chat">
     <div class="chat-head">
       <span id="chat-title">DIRECT LINE — RUNTIME-AGENT-CLI-AGENT</span>
@@ -117,7 +155,6 @@ footer { color: var(--trace); font-size: var(--fs-small); border-top: 1px dashed
       <span id="status-line">ready</span>
     </div>
   </div>
-  <footer id="doc-footer"></footer>
 </div>
 <script>
 (function () {
@@ -291,6 +328,28 @@ footer { color: var(--trace); font-size: var(--fs-small); border-top: 1px dashed
     }
   }
 
+  var copyBtn = document.getElementById("copy-btn");
+  copyBtn.addEventListener("click", function () {
+    var text = document.getElementById("install-cmd").textContent;
+    var done = function () {
+      copyBtn.textContent = "COPIED";
+      setTimeout(function () { copyBtn.textContent = "COPY"; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, done);
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch (e) { /* best effort */ }
+      document.body.removeChild(ta);
+      done();
+    }
+  });
+
   composerEl.addEventListener("submit", function (e) {
     e.preventDefault();
     submit(draftEl.value);
@@ -303,19 +362,17 @@ footer { color: var(--trace); font-size: var(--fs-small); border-top: 1px dashed
     .then(function (r) { return r.json(); })
     .then(function (card) {
       agentName = card.name || "agent";
-      document.getElementById("agent-name").textContent = card.name || "agent";
-      document.getElementById("agent-desc").textContent = card.description || "";
       document.getElementById("chat-title").textContent =
         "DIRECT LINE — " + (card.name || "agent").toUpperCase() + "-AGENT";
       liveState.textContent = "● live";
       appendMsg(
         "agent",
-        "You're talking to " + (card.name || "this agent") + "'s own agent. Ask me anything about this project.",
+        "You're talking to " + (card.name || "this agent") + "'s own agent. Ask me anything about this project, or try one of the tool calls below — the replies show the CLI's real search/inspect/run output.",
       );
       if (card.documentationUrl) {
-        var link = el("a", null, card.documentationUrl.replace("https://", ""));
-        link.href = card.documentationUrl;
-        document.getElementById("doc-footer").appendChild(link);
+        var docsLink = document.getElementById("docs-link");
+        docsLink.href = card.documentationUrl;
+        docsLink.textContent = card.documentationUrl.replace("https://", "");
       }
       var examples = (card.skills || [])
         .flatMap(function (s) { return s.examples || []; })
