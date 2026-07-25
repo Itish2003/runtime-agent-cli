@@ -216,10 +216,28 @@ async function awaitTurnReply(
   throw new Error("timed out waiting for agent reply");
 }
 
+// h3's handleCors() (invoked by the generated wrapper around this channel's
+// routes, per cors: true below) appends access-control-* headers onto the
+// H3Event before this handler ever runs — but that only survives into the
+// final HTTP response when nitro converts a plain 200 Response. A raw
+// Response.json(..., { status: 403 }) returned from here (the spend-guard
+// block) loses the event-level headers somewhere in that conversion —
+// confirmed live: the OPTIONS preflight carries them, a 403 body doesn't,
+// and a browser can't read a CORS-less response body at all (shows up as a
+// bare "Failed to fetch" to the caller, not the actual budget message).
+// Attaching the two headers cors:true actually resolves to
+// (access-control-allow-origin: *, access-control-expose-headers: *)
+// directly on every response this file builds sidesteps that, regardless
+// of which framework layer is dropping them.
+const CORS_HEADERS = {
+  "access-control-allow-origin": "*",
+  "access-control-expose-headers": "*",
+};
+
 function rpcError(id: unknown, code: number, message: string, status = 200) {
   return Response.json(
     { jsonrpc: "2.0", id: id ?? null, error: { code, message } },
-    { status },
+    { status, headers: CORS_HEADERS },
   );
 }
 
@@ -251,9 +269,9 @@ export default defineChannel({
     // filename as a param keeps the extension out of the route pattern.
     GET("/.well-known/:file", async (_req, { params }) => {
       if (params.file !== "agent-card.json") {
-        return new Response("not found", { status: 404 });
+        return new Response("not found", { status: 404, headers: CORS_HEADERS });
       }
-      return Response.json(AgentCard.toJSON(card));
+      return Response.json(AgentCard.toJSON(card), { headers: CORS_HEADERS });
     }),
 
     POST("/a2a", async (req, { send }) => {
@@ -353,13 +371,16 @@ export default defineChannel({
         extensions: [],
         referenceTaskIds: [],
       };
-      return Response.json({
-        jsonrpc: "2.0",
-        id: rpc.id ?? null,
-        result: SendMessageResponse.toJSON({
-          payload: { $case: "message", value: reply },
-        }),
-      });
+      return Response.json(
+        {
+          jsonrpc: "2.0",
+          id: rpc.id ?? null,
+          result: SendMessageResponse.toJSON({
+            payload: { $case: "message", value: reply },
+          }),
+        },
+        { headers: CORS_HEADERS },
+      );
     }),
   ],
 });
