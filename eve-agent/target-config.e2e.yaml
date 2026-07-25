@@ -1,0 +1,9 @@
+# Container-scoped shadow of the target repo's .runtime-agent-cli.yaml
+# (bind-mounted over it by the portfolio's docker-compose.e2e.yml).
+# Inside a container "localhost" is the container itself; the fable engine
+# runs on the host during the rehearsal.
+openapi_source: "http://host.docker.internal:8001/openapi.json"
+environment: local
+environments:
+  local:
+    base_url: "http://host.docker.internal:8001"

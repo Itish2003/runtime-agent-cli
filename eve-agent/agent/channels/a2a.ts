@@ -32,7 +32,19 @@ const card: AgentCard = {
   capabilities: {
     streaming: false,
     pushNotifications: false,
-    extensions: [],
+    extensions: [
+      {
+        // Portfolio convention: replies carry a text part with mediaType
+        // TERMINAL_REPLAY_MEDIA_TYPE holding the turn's real CLI calls
+        // (command + JSON output) so the embedder can render them as a
+        // terminal session. The demo IS the tool actually running.
+        uri: "urn:x-portfolio:terminal-replay",
+        description:
+          "Replies include the agent's actual runtime-agent-cli invocations as structured frames.",
+        required: false,
+        params: {},
+      },
+    ],
     extendedAgentCard: false,
   },
   securitySchemes: {},
@@ -106,11 +118,29 @@ const card: AgentCard = {
 
 type StreamEvent = { type: string; data?: Record<string, unknown> };
 
+// One real CLI invocation from this turn, for the terminal-replay demo.
+export type ReplayFrame = {
+  cmd: string;
+  output: string;
+  status: string;
+};
+
+export const TERMINAL_REPLAY_MEDIA_TYPE =
+  "application/x-portfolio-terminal-replay+json";
+
+function racCmd(input: Record<string, unknown>): string {
+  const parts = ["rac", String(input.action ?? "")];
+  if (input.query) parts.push(String(input.query));
+  if (input.operationId) parts.push(String(input.operationId));
+  if (input.dryRun) parts.push("--dry-run");
+  return parts.filter(Boolean).join(" ");
+}
+
 async function awaitTurnReply(
   stream: ReadableStream<StreamEvent>,
   sentText: string,
   timeoutMs = 180_000,
-): Promise<string> {
+): Promise<{ reply: string; frames: ReplayFrame[] }> {
   const reader = stream.getReader();
   const timer = setTimeout(() => void reader.cancel().catch(() => {}), timeoutMs);
   // A resumed session's stream replays history first. Our turn is the LAST
@@ -118,6 +148,9 @@ async function awaitTurnReply(
   // the completion events we wait for.
   let turnId: string | undefined;
   let reply: string | undefined;
+  // callId -> frame, insertion-ordered; scoped to OUR turnId so a resumed
+  // session's replayed history never leaks old invocations into this reply.
+  const frames = new Map<string, ReplayFrame>();
 
   try {
     for (;;) {
@@ -126,6 +159,33 @@ async function awaitTurnReply(
       const data = (event.data ?? {}) as Record<string, unknown>;
       if (event.type === "message.received" && data.message === sentText) {
         turnId = data.turnId as string;
+        frames.clear();
+      } else if (
+        event.type === "actions.requested" &&
+        turnId !== undefined &&
+        data.turnId === turnId
+      ) {
+        type Req = { kind: string; callId: string; toolName?: string; input?: Record<string, unknown> };
+        for (const a of (data.actions ?? []) as Req[]) {
+          if (a.kind === "tool-call" && a.toolName === "rac") {
+            frames.set(a.callId, {
+              cmd: racCmd(a.input ?? {}),
+              output: "",
+              status: "running",
+            });
+          }
+        }
+      } else if (
+        event.type === "action.result" &&
+        turnId !== undefined &&
+        data.turnId === turnId
+      ) {
+        const result = (data.result ?? {}) as { callId?: string; output?: unknown };
+        const frame = result.callId ? frames.get(result.callId) : undefined;
+        if (frame) {
+          frame.status = String(data.status ?? "completed");
+          frame.output = JSON.stringify(result.output ?? null, null, 2).slice(0, 4000);
+        }
       } else if (
         event.type === "message.completed" &&
         turnId !== undefined &&
@@ -136,7 +196,7 @@ async function awaitTurnReply(
         (event.type === "turn.completed" && data.turnId === turnId) ||
         event.type === "session.waiting"
       ) {
-        if (reply !== undefined) return reply;
+        if (reply !== undefined) return { reply, frames: [...frames.values()] };
       } else if (event.type === "turn.failed" || event.type === "session.failed") {
         throw new Error(`agent turn failed: ${JSON.stringify(data).slice(0, 300)}`);
       }
@@ -145,7 +205,7 @@ async function awaitTurnReply(
     clearTimeout(timer);
     await reader.cancel().catch(() => {});
   }
-  if (reply !== undefined) return reply;
+  if (reply !== undefined) return { reply, frames: [...frames.values()] };
   throw new Error("timed out waiting for agent reply");
 }
 
@@ -203,7 +263,10 @@ export default defineChannel({
         auth: null,
         continuationToken: contextId,
       });
-      const replyText = await awaitTurnReply(await session.getEventStream(), text);
+      const { reply: replyText, frames } = await awaitTurnReply(
+        await session.getEventStream(),
+        text,
+      );
 
       const reply: Message = {
         messageId: randomUUID(),
@@ -217,6 +280,22 @@ export default defineChannel({
             filename: "",
             mediaType: "",
           },
+          // Terminal-replay frames (card extension urn:x-portfolio:
+          // terminal-replay): a text part typed by mediaType so plain A2A
+          // clients see harmless JSON and the portfolio renders a terminal.
+          ...(frames.length > 0
+            ? [
+                {
+                  content: {
+                    $case: "text" as const,
+                    value: JSON.stringify(frames),
+                  },
+                  metadata: undefined,
+                  filename: "",
+                  mediaType: TERMINAL_REPLAY_MEDIA_TYPE,
+                },
+              ]
+            : []),
         ],
         metadata: undefined,
         extensions: [],
