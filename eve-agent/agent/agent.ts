@@ -12,7 +12,14 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 // (IP changes, future tunnel URL) without disarming the fallback.
 const PRESETS = {
   local: {
-    baseURL: process.env.LOCAL_MODEL_BASE_URL ?? "http://192.168.1.12:11434/v1",
+    // Mirrors the portfolio's default: the friend's box is reached through a
+    // Cloudflare quick tunnel, not its LAN IP — the IP only ever resolved
+    // from inside that LAN. Ephemeral by nature (dies on cloudflared
+    // restart), so LOCAL_MODEL_BASE_URL overrides when it rotates. See the
+    // portfolio repo's notes/tunnel.md for the named-tunnel runbook.
+    baseURL:
+      process.env.LOCAL_MODEL_BASE_URL ??
+      "https://metres-permit-thumbs-procedure.trycloudflare.com/v1",
     modelId: process.env.LOCAL_MODEL_ID ?? "gemma4:12b",
     apiKey: () => undefined as string | undefined,
     contextTokens: 262_144,
